@@ -5,7 +5,10 @@ const message = ref('')
 const selectedModel = ref('Smart (GPT-5)')
 const showModelMenu = ref(false)
 const showOptionsMenu = ref(false)
+const showDocumentUpload = ref(false)
 const showTranslateDialog = ref(false)
+const isLoading = ref(false)
+const selectedFile = ref<File | null>(null)
 const sourceLanguage = ref('es')
 const targetLanguage = ref('en')
 
@@ -50,20 +53,44 @@ const selectModel = (model: string) => {
 
 const selectOption = (optionName: string) => {
   if (optionName === 'Traducir documento') {
-    showTranslateDialog.value = true
+    showDocumentUpload.value = true
   } else {
     console.log('Selected:', optionName)
   }
   showOptionsMenu.value = false
 }
 
+const handleFileSelected = (event: Event) => {
+  const input = event.target as HTMLInputElement
+  if (input.files && input.files[0]) {
+    selectedFile.value = input.files[0]
+    startLoading()
+  }
+}
+
+const startLoading = () => {
+  isLoading.value = true
+  setTimeout(() => {
+    isLoading.value = false
+    showDocumentUpload.value = false
+    showTranslateDialog.value = true
+  }, 2000)
+}
+
 const handleTranslate = () => {
-  console.log(`Translating from ${sourceLanguage.value} to ${targetLanguage.value}`)
+  console.log(`Translating ${selectedFile.value?.name} from ${sourceLanguage.value} to ${targetLanguage.value}`)
   showTranslateDialog.value = false
+  selectedFile.value = null
+}
+
+const closeDocumentUpload = () => {
+  showDocumentUpload.value = false
+  selectedFile.value = null
 }
 
 const closeTranslateDialog = () => {
   showTranslateDialog.value = false
+  selectedFile.value = null
 }
 
 const handleSuggestion = (suggestion: string) => {
@@ -172,6 +199,50 @@ const handleSuggestion = (suggestion: string) => {
           </div>
         </transition>
       </div>
+
+      <transition name="dropdown">
+        <div v-if="showDocumentUpload" class="modal-overlay" @click.self="closeDocumentUpload">
+          <div class="translate-dialog">
+            <div class="dialog-header">
+              <h2>Cargar Documento</h2>
+              <button class="close-btn" @click="closeDocumentUpload">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="6" x2="6" y2="18"/>
+                  <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
+
+            <div class="dialog-content">
+              <div v-if="!isLoading" class="upload-section">
+                <div class="upload-area">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="upload-icon">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                  </svg>
+                  <p class="upload-text">Arrastra tu documento aquí o haz clic para seleccionar</p>
+                  <p class="upload-hint">Soporta: PDF, DOCX, TXT (máx. 50MB)</p>
+                  <input
+                    type="file"
+                    class="file-input"
+                    @change="handleFileSelected"
+                    accept=".pdf,.docx,.txt"
+                  />
+                </div>
+              </div>
+
+              <div v-else class="loading-section">
+                <div class="loading-spinner">
+                  <div class="spinner"></div>
+                </div>
+                <p class="loading-text">Procesando documento...</p>
+                <p class="loading-filename">{{ selectedFile?.name }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </transition>
 
       <transition name="dropdown">
         <div v-if="showTranslateDialog" class="modal-overlay" @click.self="closeTranslateDialog">
@@ -637,6 +708,104 @@ const handleSuggestion = (suggestion: string) => {
 .btn-translate:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+}
+
+.upload-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+}
+
+.upload-area {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  border: 2px dashed rgba(147, 197, 253, 0.4);
+  border-radius: 12px;
+  background: rgba(147, 197, 253, 0.05);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.upload-area:hover {
+  border-color: rgba(147, 197, 253, 0.6);
+  background: rgba(147, 197, 253, 0.1);
+}
+
+.upload-icon {
+  width: 48px;
+  height: 48px;
+  color: #3b82f6;
+  margin-bottom: 1rem;
+}
+
+.upload-text {
+  margin: 0.5rem 0 0.25rem;
+  color: #1e293b;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.upload-hint {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+
+.file-input {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+}
+
+.loading-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+}
+
+.loading-spinner {
+  margin-bottom: 2rem;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(147, 197, 253, 0.2);
+  border-top: 4px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-text {
+  margin: 0 0 0.5rem;
+  color: #1e293b;
+  font-weight: 600;
+  font-size: 1.05rem;
+}
+
+.loading-filename {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.9rem;
+  word-break: break-all;
 }
 
 @media (max-width: 768px) {
