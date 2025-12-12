@@ -5,6 +5,9 @@ const message = ref('')
 const selectedModel = ref('Smart (GPT-5)')
 const showModelMenu = ref(false)
 const showOptionsMenu = ref(false)
+const showTranslateDialog = ref(false)
+const sourceLanguage = ref('es')
+const targetLanguage = ref('en')
 
 const models = [
   { id: 1, name: 'Smart (GPT-5)', icon: '🎯' },
@@ -12,10 +15,24 @@ const models = [
   { id: 3, name: 'Fast (GPT-3.5)', icon: '⚡' }
 ]
 
+const languages = [
+  { code: 'es', name: 'Español' },
+  { code: 'en', name: 'English' },
+  { code: 'fr', name: 'Français' },
+  { code: 'de', name: 'Deutsch' },
+  { code: 'it', name: 'Italiano' },
+  { code: 'pt', name: 'Português' },
+  { code: 'ja', name: '日本語' },
+  { code: 'zh', name: '中文' },
+  { code: 'ko', name: '한국어' },
+  { code: 'ru', name: 'Русский' }
+]
+
 const options = [
   { id: 1, name: 'Nueva conversación', icon: 'edit' },
   { id: 2, name: 'Cargar archivo', icon: 'upload' },
-  { id: 3, name: 'Capturar pantalla', icon: 'camera' }
+  { id: 3, name: 'Capturar pantalla', icon: 'camera' },
+  { id: 4, name: 'Traducir documento', icon: 'translate' }
 ]
 
 const suggestions = [
@@ -32,8 +49,21 @@ const selectModel = (model: string) => {
 }
 
 const selectOption = (optionName: string) => {
-  console.log('Selected:', optionName)
+  if (optionName === 'Traducir documento') {
+    showTranslateDialog.value = true
+  } else {
+    console.log('Selected:', optionName)
+  }
   showOptionsMenu.value = false
+}
+
+const handleTranslate = () => {
+  console.log(`Translating from ${sourceLanguage.value} to ${targetLanguage.value}`)
+  showTranslateDialog.value = false
+}
+
+const closeTranslateDialog = () => {
+  showTranslateDialog.value = false
 }
 
 const handleSuggestion = (suggestion: string) => {
@@ -130,11 +160,71 @@ const handleSuggestion = (suggestion: string) => {
                 <circle cx="12" cy="12" r="3"/>
                 <path d="M16 2v4M8 2v4M2 8h20"/>
               </svg>
+              <svg v-else-if="option.icon === 'translate'" class="item-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="2 5 2 19 22 19 22 5 2 5"/>
+                <path d="M2 9h20"/>
+                <path d="M9 13v6"/>
+                <path d="M15 13v6"/>
+                <text x="5" y="17" font-size="3" fill="currentColor">A</text>
+              </svg>
               <span>{{ option.name }}</span>
             </div>
           </div>
         </transition>
       </div>
+
+      <transition name="dropdown">
+        <div v-if="showTranslateDialog" class="modal-overlay" @click.self="closeTranslateDialog">
+          <div class="translate-dialog">
+            <div class="dialog-header">
+              <h2>Traducir Documento</h2>
+              <button class="close-btn" @click="closeTranslateDialog">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="6" x2="6" y2="18"/>
+                  <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
+
+            <div class="dialog-content">
+              <div class="language-selector">
+                <div class="selector-group">
+                  <label>Idioma de origen</label>
+                  <select v-model="sourceLanguage" class="language-select">
+                    <option v-for="lang in languages" :key="lang.code" :value="lang.code">
+                      {{ lang.name }}
+                    </option>
+                  </select>
+                </div>
+
+                <div class="swap-btn-container">
+                  <button class="swap-btn" @click="[sourceLanguage, targetLanguage] = [targetLanguage, sourceLanguage]">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <line x1="12" y1="5" x2="12" y2="19"/>
+                      <polyline points="19 12 12 19 5 12"/>
+                      <polyline points="5 12 12 5 19 12"/>
+                    </svg>
+                  </button>
+                </div>
+
+                <div class="selector-group">
+                  <label>Idioma de destino</label>
+                  <select v-model="targetLanguage" class="language-select">
+                    <option v-for="lang in languages" :key="lang.code" :value="lang.code">
+                      {{ lang.name }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="dialog-footer">
+              <button class="btn-cancel" @click="closeTranslateDialog">Cancelar</button>
+              <button class="btn-translate" @click="handleTranslate">Traducir</button>
+            </div>
+          </div>
+        </div>
+      </transition>
 
       <div class="suggestions">
         <button
@@ -368,6 +458,187 @@ const handleSuggestion = (suggestion: string) => {
   transform: translateY(-10px);
 }
 
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.translate-dialog {
+  background: rgba(255, 255, 255, 0.98);
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(59, 130, 246, 0.2);
+  border: 1px solid rgba(147, 197, 253, 0.2);
+  max-width: 500px;
+  width: 90%;
+  overflow: hidden;
+}
+
+.dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem;
+  border-bottom: 1px solid rgba(147, 197, 253, 0.1);
+}
+
+.dialog-header h2 {
+  margin: 0;
+  color: #1e293b;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(147, 197, 253, 0.1);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.close-btn:hover {
+  background: rgba(147, 197, 253, 0.2);
+}
+
+.close-btn svg {
+  width: 18px;
+  height: 18px;
+  color: #1e293b;
+}
+
+.dialog-content {
+  padding: 2rem 1.5rem;
+}
+
+.language-selector {
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+}
+
+.selector-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.selector-group label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #475569;
+}
+
+.language-select {
+  padding: 0.75rem;
+  border: 1px solid rgba(147, 197, 253, 0.3);
+  border-radius: 8px;
+  background: rgba(147, 197, 253, 0.05);
+  color: #1e293b;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.language-select:hover {
+  border-color: rgba(147, 197, 253, 0.5);
+  background: rgba(147, 197, 253, 0.1);
+}
+
+.language-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  background: rgba(147, 197, 253, 0.1);
+}
+
+.swap-btn-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 0;
+}
+
+.swap-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: rgba(147, 197, 253, 0.1);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.swap-btn:hover {
+  background: rgba(147, 197, 253, 0.2);
+  transform: rotate(180deg);
+}
+
+.swap-btn svg {
+  width: 20px;
+  height: 20px;
+  color: #3b82f6;
+}
+
+.dialog-footer {
+  display: flex;
+  gap: 1rem;
+  padding: 1.5rem;
+  border-top: 1px solid rgba(147, 197, 253, 0.1);
+  justify-content: flex-end;
+}
+
+.btn-cancel {
+  padding: 0.75rem 1.5rem;
+  background: rgba(147, 197, 253, 0.1);
+  border: 1px solid rgba(147, 197, 253, 0.2);
+  border-radius: 8px;
+  color: #1e293b;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-cancel:hover {
+  background: rgba(147, 197, 253, 0.15);
+  border-color: rgba(147, 197, 253, 0.3);
+}
+
+.btn-translate {
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.btn-translate:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+}
+
 @media (max-width: 768px) {
   .greeting {
     font-size: 2rem;
@@ -388,6 +659,18 @@ const handleSuggestion = (suggestion: string) => {
   .suggestion-btn {
     padding: 0.6rem 1.2rem;
     font-size: 0.85rem;
+  }
+
+  .language-selector {
+    flex-direction: column;
+  }
+
+  .selector-group {
+    width: 100%;
+  }
+
+  .swap-btn-container {
+    transform: rotate(90deg);
   }
 }
 </style>
